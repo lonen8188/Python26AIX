@@ -120,5 +120,5 @@ class ScoreService:
         print(
             f"ID:{s.uid} | "
             f"국어:{s.kor} 영어:{s.eng} 수학:{s.math} | "
-            f"총점:{s.total} 평균:{s.avg}"
+            f"총점:{s.total} 평균:{s.avg} | 등급 : {s.grade}"
         )

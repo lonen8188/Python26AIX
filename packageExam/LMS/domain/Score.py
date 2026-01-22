@@ -1,4 +1,5 @@
 class Score:
+
     def __init__(self, uid, kor, eng, math):
         self.uid = uid
         self.kor = kor
@@ -6,16 +7,16 @@ class Score:
         self.math = math
 
     @property
-    def total(self):
+    def total(self): # 변수처럼 사용하기 s.total
         return self.kor + self.eng + self.math
 
     @property
-    def avg(self):
+    def avg(self): # 변수처럼 사용하기 s.avg
         return round(self.total / 3, 2)
 
     # 성적 등급 자동 계산
     @property
-    def grade(self):
+    def grade(self): # 변수처럼 사용하기 s.grade
         if self.avg >= 90:
             return "A"
         elif self.avg >= 80:
