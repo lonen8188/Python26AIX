@@ -1,0 +1,6 @@
+kkw|1111|김기원|admin|True
+lhj|5678|임효정|manager|True
+ljj|8888|이재정|user|True
+kkk|kkk|kkk|admin|True
+lll|lll|lll|user|True
+jjj|jjj|jjj|user|True

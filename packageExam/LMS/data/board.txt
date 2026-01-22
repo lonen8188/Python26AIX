@@ -1,0 +1,2 @@
+1|kkk|kkk|kkw|True
+2|ggg|ggg|kkw|False
