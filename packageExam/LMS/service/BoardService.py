@@ -1,4 +1,4 @@
-from packageExam.LMS.domain.Board import Board
+from packageExam.LMS.domain import Board
 from packageExam.LMS.common import Session
 import os
 

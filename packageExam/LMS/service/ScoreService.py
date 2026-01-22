@@ -1,5 +1,5 @@
 import os
-from packageExam.LMS.domain.Score import Score
+from packageExam.LMS.domain import Score
 from packageExam.LMS.common import Session
 
 FILE_PATH = "data/score.txt"
@@ -18,6 +18,7 @@ class ScoreService:
 
         with open(FILE_PATH, "r", encoding="utf-8") as f:
             for line in f:
+                print(line)
                 cls.scores.append(Score.from_line(line))
 
     @classmethod
@@ -36,7 +37,7 @@ class ScoreService:
             return
 
         member = Session.login_member
-
+        cls.load() # 파일로 저장된 목록을 불러온다.
         while True:
             print("\n====== 성적 관리 ======")
             if member.role in ("manager", "admin"):
