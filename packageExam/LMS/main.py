@@ -15,8 +15,7 @@ def main():
 ==========================
 1. 회원가입  2. 로그인 3. 로그아웃
 4. 회원관리 (관리자)  
-5. 게시판  6. 성적관리 7. 상품몰
-9. 종료
+5. 게시판  6. 성적관리 9. 종료
 """)
         member = Session.login_member
         if member is None :
@@ -31,7 +30,6 @@ def main():
         elif sel == "4": MemberService.admin_menu()
         elif sel == "5": BoardService.run()
         elif sel == "6": ScoreService.run()
-        elif sel == "7": ItemService.run()
         elif sel == "9":
             print("프로그램 종료")
             run = False
