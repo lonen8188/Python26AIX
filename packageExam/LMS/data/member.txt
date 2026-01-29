@@ -4,3 +4,4 @@ ljj|8888|이재정|user|True
 kkk|kkk|kkk|admin|True
 lll|lll|lll|user|True
 jjj|jjj|jjj|user|True
+eee|eee|eee|admin|False
