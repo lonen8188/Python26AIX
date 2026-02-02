@@ -7,7 +7,9 @@
 # 파이참에도 db를 관리하는 메뉴가 있다.
 # 오른쪽 버튼에 db 선택함 -> mysql 워크벤치 대타용
 
-import pymysql # pip install pymysql 터미널 설치 필수
+import pymysql
+# pip install pymysql 터미널 설치 필수
+# pip install cryptography mysql 인증문제 해결용
 
 class Session:
 

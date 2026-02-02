@@ -37,6 +37,12 @@ def main():
         elif sel == "4":
             print("회원관리 서비스로 진입합니다.")
             MemberService.modify()
+        elif sel == "5":
+            print("게시판 서비스로 진입합니다.")
+            BoardService.run()
+        elif sel == "6":
+            print("성적관리 서비스로 진입합니다.")
+            ScoreService.run()
         elif sel == "9":
             print("LMS 서비스를 종료합니다.")
             run = False
