@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Label 기초 실습</title>
+</head>
+<body>
+    <h2>회원가입 폼</h2>
+
+    <!-- for 속성을 사용한 연결 -->
+    <label for="username">사용자명:</label>
+    <input type="text" id="username" name="username">
+    <br><br>
+
+    <label for="email">이메일:</label>
+    <input type="email" id="email" name="email">
+    <br><br>
+
+    <!-- 감싸기 방법 -->
+    <label>
+        비밀번호:
+        <input type="password" name="password">
+    </label>
+    <br><br>
+
+    <!-- 체크박스와 라디오 버튼에서의 활용 -->
+    <label for="agree">
+        <input type="checkbox" id="agree" name="agree">
+        이용약관에 동의합니다
+    </label>
+    <br><br>
+
+    <fieldset>
+        <legend>성별</legend>
+        <label for="male">
+            <input type="radio" id="male" name="gender" value="male">
+            남성
+        </label>
+        <label for="female">
+            <input type="radio" id="female" name="gender" value="female">
+            여성
+        </label>
+    </fieldset>
+</body>
+</html>
+
+
+  <!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스타일링된 Label</title>
+    <style>
+        .form-container {
+            max-width: 400px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .checkbox-label,
+        .radio-label {
+            display: inline-block;
+            margin-right: 15px;
+            font-weight: normal;
+        }
+
+        .required {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>개선된 회원가입 폼</h2>
+
+        <div class="form-group">
+            <label for="username">사용자명 <span class="required">*</span></label>
+            <input type="text" id="username" name="username" required>
+        </div>
+
+        <div class="form-group">
+            <label for="email">이메일 <span class="required">*</span></label>
+            <input type="email" id="email" name="email" required>
+        </div>
+
+        <div class="form-group">
+            <label for="password">비밀번호 <span class="required">*</span></label>
+            <input type="password" id="password" name="password" required>
+        </div>
+
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="newsletter">
+                뉴스레터 구독
+            </label>
+        </div>
+
+        <div class="form-group">
+            <label>성별</label>
+            <label class="radio-label">
+                <input type="radio" name="gender" value="male">
+                남성
+            </label>
+            <label class="radio-label">
+                <input type="radio" name="gender" value="female">
+                여성
+            </label>
+        </div>
+    </div>
+</body>
+</html>
+
+
+  <!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실무형 회원가입 폼</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .signup-form {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .form-title {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .form-row {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .required::after {
+            content: " *";
+            color: #e74c3c;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            width: auto;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .submit-btn:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <form class="signup-form">
+        <h2 class="form-title">회원가입</h2>
+
+        <div class="form-row">
+            <label for="fullname" class="form-label required">이름</label>
+            <input type="text" id="fullname" name="fullname" class="form-input" required>
+        </div>
+
+        <div class="form-row">
+            <label for="email" class="form-label required">이메일</label>
+            <input type="email" id="email" name="email" class="form-input" required>
+        </div>
+
+        <div class="form-row">
+            <label for="password" class="form-label required">비밀번호</label>
+            <input type="password" id="password" name="password" class="form-input" required>
+        </div>
+
+        <div class="form-row">
+            <label for="phone" class="form-label">전화번호</label>
+            <input type="tel" id="phone" name="phone" class="form-input">
+        </div>
+
+        <div class="form-row">
+            <div class="checkbox-container">
+                <input type="checkbox" id="terms" name="terms" required>
+                <label for="terms">이용약관에 동의합니다</label>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="checkbox-container">
+                <input type="checkbox" id="marketing" name="marketing">
+                <label for="marketing">마케팅 정보 수신에 동의합니다</label>
+            </div>
+        </div>
+
+        <button type="submit" class="submit-btn">회원가입</button>
+    </form>
+</body>
+</html>
+<!--for 속성과 id 속성을 연결하거나 감싸기 방법 사용
+- 모든 입력 필드에 적절한 label 제공
+- 필수 입력 항목은 시각적으로 구분
+- 체크박스와 라디오 버튼에서 특히 유용-->

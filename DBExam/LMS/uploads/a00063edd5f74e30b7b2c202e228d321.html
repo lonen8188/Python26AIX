@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+<select name="region">
+ <option value="seoul">서울특별시</option>
+ <option value="busan">부산광역시</option>
+ <option value="incheon">인천광역시</option>
+</select>
+
+<!--드롭다운(dropdown)은 마치 접이식 서랍
+<select>와 <option> 태그의 조합
+
+  multiple: 여러 항목을 동시에 선택 가능
+- size: 한 번에 보여줄 항목의 개수 지정
+- disabled: 선택 불가능하게 만들기
+-->
+
+  <!DOCTYPE html>
+<html lang="ko">
+<head>
+ <meta charset="UTF-8">
+ <title>드롭다운 실습</title>
+</head>
+<body>
+ <h2>회원가입 - 거주지역 선택</h2>
+ <form>
+ <label for="region">거주 지역:</label>
+ <select id="region" name="region">
+ <option value="">-- 지역을 선택하세요 --</option>
+ <option value="seoul">서울특별시</option>
+ <option value="busan">부산광역시</option>
+ <option value="daegu">대구광역시</option>
+ <option value="incheon">인천광역시</option>
+ <option value="gwangju">광주광역시</option>
+ <option value="daejeon">대전광역시</option>
+ <option value="ulsan">울산광역시</option>
+ </select>
+ </form>
+</body>
+</html>
+
+
+  <form>
+ <label for="region-grouped">거주 지역 (그룹화):</label>
+ <select id="region-grouped" name="region">
+ <option value="">-- 지역을 선택하세요 --</option>
+
+ <optgroup label="특별시/광역시">
+ <option value="seoul" selected>서울특별시</option>
+ <option value="busan">부산광역시</option>
+ <option value="daegu">대구광역시</option>
+ <option value="incheon">인천광역시</option>
+ </optgroup>
+
+ <optgroup label="도 지역">
+ <option value="gyeonggi">경기도</option>
+ <option value="gangwon">강원도</option>
+ <option value="chungbuk">충청북도</option>
+ <option value="chungnam">충청남도</option>
+ </optgroup>
+ </select>
+</form>
+<!--selected 속성으로 기본 선택값 지정
+- <optgroup> 태그로 관련 항목들을 그룹화
+- label 속성으로 그룹 제목 표시-->
+
+  <form>
+ <label for="interests">관심 분야 (복수 선택 가능):</label>
+ <select id="interests" name="interests" multiple size="5">
+ <option value="web">웹 개발</option>
+ <option value="mobile">모바일 앱 개발</option>
+ <option value="ai">인공지능</option>
+ <option value="data">데이터 분석</option>
+ <option value="security">정보보안</option>
+ <option value="game">게임 개발</option>
+ <option value="design">UI/UX 디자인</option>
+ </select>
+ <p><small> Ctrl(Cmd) + 클릭으로 여러 항목을 선택할 수 있습니다.</small></p>
+</form>
+  <!--multiple 속성 사용 시 Ctrl(Windows) 또는 Cmd(Mac) + 클릭으로 여러 항목 선택
+- size 속성으로 한 번에 보여줄 항목 개수 조절
+- 다중 선택 시 사용자 안내 메시지 필수-->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+ <meta charset="UTF-8">
+ <title>완성된 드롭다운</title>
+ <style>
+ .form-group {
+ margin-bottom: 20px;
+ }
+
+ label {
+ display: block;
+ margin-bottom: 5px;
+ font-weight: bold;
+ }
+
+ select {
+ width: 300px;
+ padding: 8px;
+ border: 2px solid #ddd;
+ border-radius: 4px;
+ font-size: 14px;
+ }
+
+ select:focus {
+ border-color: #4CAF50;
+ outline: none;
+ }
+
+ .multi-select {
+ height: 120px;
+ }
+ </style>
+</head>
+<body>
+ <h2> 완성된 드롭다운 폼</h2>
+
+ <form>
+ <div class="form-group">
+ <label for="region">거주 지역:</label>
+ <select id="region" name="region">
+ <option value="">-- 선택하세요 --</option>
+ <option value="seoul">서울특별시</option>
+ <option value="busan">부산광역시</option>
+ <option value="daegu">대구광역시</option>
+ </select>
+ </div>
+
+ <div class="form-group">
+ <label for="skills">보유 기술 (복수 선택):</label>
+ <select id="skills" name="skills" multiple class="multi-select">
+ <option value="html">HTML</option>
+ <option value="css">CSS</option>
+ <option value="js">JavaScript</option>
+ <option value="java">Java</option>
+ <option value="python">Python</option>
+ </select>
+ </div>
+ </form>
+</body>
+</html>
+<!--<select>와 <option>: 드롭다운의 기본 구조
+value 속성: 실제 전송되는 데이터 값
+<optgroup>: 관련 항목들의 그룹화
+multiple 속성: 다중 선택 기능
+selected 속성: 기본 선택값 지정-->

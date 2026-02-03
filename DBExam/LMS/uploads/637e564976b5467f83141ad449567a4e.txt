@@ -1,0 +1,66 @@
+파이썬 21일차, 4주차
+
+
+
+
+## db와 파이썬(참) 잇기
+
+
+
+
+가장 중요한 변동 2개
+
+
+# Session 변동
+
+import pymysql
+
+
+@classmethod
+def get_connection(cls): #db와 연결하여 딕셔너리 타입으로 가져온다.
+	return pymysql.connect(
+	host = 'localhost'
+	user = 'mbc'
+	password = '1234'
+	db = 'lms'
+	charset = 'utf8mb4'
+	cursor = pymysql.cursor.DictCursor
+
+
+Sesssion에서 사용할 메서드
+본래는 연결용 메서드이나 임시로 Session에서 구동
+
+import로 pymysql 패키지 연결
+
+
+return 으로 메서드를 탈출할 때 값을 넣는다.
+무엇을 > pymysql.connect() 객체 메서드에 넣는다.
+> 각각에 대응되는 답(값)을. 그러면 커넥션 발동으로 db와 파이썬 연결(우선 이정도만 이해)
+
+마지막엔 conn = Session.get_connection()을 닫아줘야한다.
+	     conn.close()
+
+
+
+# Member 변동
+
+
+@classmethod 
+def from_db(cls,row): # row'행'을 받아서 객체로 만든다.
+	if not row: # 행이 없는 상태로 들어오면(None) False
+		return None
+
+	return cls(
+	id = row.get('id')
+	uid = row.ger('uid')
+	pw = row.get('password')
+	name = row.get('name')
+	role = row.get('role')
+	active = bool(row.get('active'))
+
+	)
+
+
+
+
+

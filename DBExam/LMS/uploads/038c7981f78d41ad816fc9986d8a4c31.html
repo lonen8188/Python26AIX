@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <form action="전송할_주소" method="전송_방법">
+ <!-- 여기에 입력 요소들이 들어갑니다 -->
+ <input type="text" name="username">
+ <button type="submit">제출</button>
+</form>
+ </head>
+   </html>
+
+<!--action: 폼 데이터를 어디로 보낼지 정하는 주소 (목적지)
+    method: 데이터를 어떤 방식으로 보낼지 정하는 방법 (GET 또는 POST)-->
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>내 첫 번째 폼</title>
+</head>
+<body>
+ <h1>로그인</h1>
+
+ <form action="#" method="post">
+ <p>
+ <label>아이디:</label>
+ <input type="text" name="userid">
+ </p>
+
+ <p>
+ <label>비밀번호:</label>
+ <input type="password" name="password">
+ </p>
+
+ <p>
+ <button type="submit">로그인</button>
+ </p>
+ </form>
+</body>
+</html>
+
+<form action="signup.php" method="post">
+ <h2>회원가입</h2>
+
+ <p>
+ <label>이름:</label>
+ <input type="text" name="name" required>
+ </p>
+
+ <p>
+ <label>이메일:</label>
+ <input type="email" name="email" required>
+ </p>
+
+ <p>
+ <label>비밀번호:</label>
+ <input type="password" name="password" required>
+ </p>
+
+ <p>
+ <button type="submit">가입하기</button>
+ <button type="reset">다시 작성</button>
+ </p>
+</form>
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>예쁜 회원가입 폼</title>
+ <style>
+ .form-container {
+ max-width: 400px;
+ margin: 50px auto;
+ padding: 20px;
+ border: 1px solid #ddd;
+ border-radius: 8px;
+ }
+
+ .form-group {
+ margin-bottom: 15px;
+ }
+
+ label {
+ display: block;
+ margin-bottom: 5px;
+ font-weight: bold;
+ }
+
+ input {
+ width: 100%;
+ padding: 8px;
+ border: 1px solid #ccc;
+ border-radius: 4px;
+ box-sizing: border-box;
+ }
+
+ button {
+ padding: 10px 20px;
+ margin-right: 10px;
+ border: none;
+ border-radius: 4px;
+ cursor: pointer;
+ }
+
+ .submit-btn {
+ background-color: #007bff;
+ color: white;
+ }
+
+ .reset-btn {
+ background-color: #6c757d;
+ color: white;
+ }
+ </style>
+</head>
+<body>
+ <div class="form-container">
+ <form action="#" method="post">
+ <h2>회원가입</h2>
+
+ <div class="form-group">
+ <label for="name">이름</label>
+ <input type="text" id="name" name="name" required>
+ </div>
+
+ <div class="form-group">
+ <label for="email">이메일</label>
+ <input type="email" id="email" name="email" required>
+ </div>
+
+ <div class="form-group">
+ <label for="password">비밀번호</label>
+ <input type="password" id="password" name="password" required>
+ </div>
+
+ <div class="form-group">
+ <button type="submit" class="submit-btn">가입하기</button>
+ <button type="reset" class="reset-btn">다시 작성</button>
+ </div>
+ </form>
+ </div>
+</body>
+</html>
+<!--폼(Form)은 사용자 입력을 받아 서버로 전송하는 HTML 요소입니다
+<form> 태그로 입력 요소들을 감싸고, action과 method 속성을 설정합니다
+<input> 태그로 다양한 형태의 입력 칸을 만들 수 있습니다
+<button type="submit">으로 폼 데이터를 전송합니다-->

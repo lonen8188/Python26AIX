@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>텍스트 입력 연습</title>
+</head>
+<body>
+ <h2>회원가입 폼</h2>
+ <form>
+ <label>이름: </label>
+ <input type="text" name="username">
+ <br><br>
+
+ <label>이메일: </label>
+ <input type="text" name="email">
+ <br><br>
+
+ <input type="submit" value="가입하기">
+ </form>
+</body>
+</html>
+
+  <form>
+ <label>이름: </label>
+ <input type="text" name="username" placeholder="홍길동" maxlength="10" required>
+ <br><br>
+
+ <label>이메일: </label>
+ <input type="text" name="email" placeholder="example@email.com" size="30">
+ <br><br>
+
+ <label>회사명: </label>
+ <input type="text" name="company" value="(주)웹개발" readonly>
+ <br><br>
+
+ <input type="submit" value="가입하기">
+</form>
+<!--placeholder: 입력 힌트 표시
+- maxlength: 최대 입력 글자 수 제한
+- required: 필수 입력 항목 지정
+- size: 입력창의 크기 조절
+- value: 기본값 설정
+- readonly: 읽기 전용 (수정 불가)-->
+
+  <style>
+ .form-group {
+ margin-bottom: 15px;
+ }
+ .form-group label {
+ display: block;
+ margin-bottom: 5px;
+ font-weight: bold;
+ }
+ .form-group input[type="text"] {
+ width: 300px;
+ padding: 8px;
+ border: 1px solid #ccc;
+ border-radius: 4px;
+ }
+</style>
+
+<form>
+ <div class="form-group">
+ <label for="fullname">성명 *</label>
+ <input type="text" id="fullname" name="fullname"
+ placeholder="실명을 입력해주세요"
+ maxlength="20" required>
+ </div>
+
+ <div class="form-group">
+ <label for="nickname">닉네임</label>
+ <input type="text" id="nickname" name="nickname"
+ placeholder="2-10자 사이로 입력"
+ minlength="2" maxlength="10">
+ </div>
+
+ <div class="form-group">
+ <label for="referral">추천인 코드</label>
+ <input type="text" id="referral" name="referral"
+ placeholder="선택사항"
+ pattern="[A-Z]{2}[0-9]{4}">
+ </div>
+
+ <input type="submit" value="회원가입">
+</form>
+<!--for와 id 속성으로 라벨과 입력창 연결
+- minlength로 최소 글자 수 제한
+- pattern으로 입력 형식 검증 (정규표현식 사용)-->
+
+  <!--텍스트 입력창(<input type="text">)은 웹 폼의 가장 기본이 되는 요소-->
+  <!--name 속성은 필수 (서버로 데이터 전송시 사용)
+- placeholder로 사용자에게 친절한 안내 제공
+- required, maxlength 등으로 입력 검증 강화-->

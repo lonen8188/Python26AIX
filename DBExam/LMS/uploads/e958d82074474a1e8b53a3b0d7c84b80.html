@@ -1,0 +1,135 @@
+<!--시맨틱 태그의 개념과 필요성을 설명할 수 있습니다.
+페이지 구조 태그(header, nav, main, footer)를 적절히 배치할 수 있습니다.
+콘텐츠 그룹핑 태그(article, section, aside)를 용도에 맞게 사용할 수 있습니다.
+기타 시맨틱 요소(figure, figcaption, time)를 활용할 수 있습니다.
+시맨틱 마크업이 SEO와 접근성에 미치는 영향을 이해하고 적용할 수 있습니다.-->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+   <!-- 비시맨틱: 의미가 없는 마크업 -->
+<div class="header">
+ <div class="title">우리 회사 블로그</div>
+</div>
+<div class="content">
+ <div class="post">
+ <div class="post-title">HTML5 배우기</div>
+ <div class="post-content">오늘은 HTML5에 대해...</div>
+ </div>
+</div>
+
+<!-- 시맨틱: 의미가 명확한 마크업 -->
+<header>
+ <h1>우리 회사 블로그</h1>
+</header>
+<main>
+ <article>
+ <h2>HTML5 배우기</h2>
+ <p>오늘은 HTML5에 대해...</p>
+ </article>
+</main>
+
+
+  <!DOCTYPE html>
+<html lang="ko">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>시맨틱 블로그</title>
+ <style>
+ header { background: #333; color: white; padding: 20px; }
+ nav { background: #666; padding: 10px; }
+ main { padding: 20px; }
+ aside { background: #f4f4f4; padding: 15px; }
+ footer { background: #333; color: white; padding: 10px; text-align: center; }
+ </style>
+</head>
+<body>
+ <header>
+ <h1>김개발의 개발 블로그</h1>
+ <p>웹 개발의 모든 것을 기록합니다</p>
+ </header>
+
+ <nav>
+ <ul>
+ <li><a href="#home">홈</a></li>
+ <li><a href="#about">소개</a></li>
+ <li><a href="#posts">포스트</a></li>
+ </ul>
+ </nav>
+
+ <main>
+ <article>
+ <h2>HTML5 시맨틱 태그 완전 정복</h2>
+ <p><time datetime="2024-01-15">2024년 1월 15일</time></p>
+ <p>오늘은 HTML5의 시맨틱 태그에 대해 알아보겠습니다...</p>
+ </article>
+ </main>
+
+ <aside>
+ <h3>최근 포스트</h3>
+ <ul>
+ <li><a href="#">CSS 기초 다지기</a></li>
+ <li><a href="#">JavaScript 시작하기</a></li>
+ </ul>
+ </aside>
+
+ <footer>
+ <p>&copy; 2024 김개발. All rights reserved.</p>
+ </footer>
+</body>
+</html>
+
+
+  <main>
+ <section>
+ <h2>최신 포스트</h2>
+
+ <article>
+ <header>
+ <h3>HTML5 시맨틱 태그 완전 정복</h3>
+ <p>작성자: <strong>김개발</strong> |
+ <time datetime="2024-01-15">2024년 1월 15일</time></p>
+ </header>
+ <p>시맨틱 태그는 웹페이지에 의미를 부여합니다...</p>
+ <footer>
+ <p>태그: <mark>HTML5</mark>, <mark>시맨틱</mark></p>
+ </footer>
+ </article>
+
+ <article>
+ <header>
+ <h3>CSS Flexbox 마스터하기</h3>
+ <p>작성자: <strong>김개발</strong> |
+ <time datetime="2024-01-10">2024년 1월 10일</time></p>
+ </header>
+ <p>Flexbox는 레이아웃을 쉽게 만들어주는 강력한 도구입니다...</p>
+ <footer>
+ <p>태그: <mark>CSS</mark>, <mark>Flexbox</mark></p>
+ </footer>
+ </article>
+ </section>
+</main>
+
+
+  <main role="main">
+ <section aria-labelledby="recent-posts">
+ <h2 id="recent-posts">최신 포스트</h2>
+
+ <article aria-labelledby="post-1">
+ <header>
+ <h3 id="post-1">HTML5 시맨틱 태그 완전 정복</h3>
+ <p>작성자: <strong>김개발</strong> |
+ <time datetime="2024-01-15">2024년 1월 15일</time></p>
+ </header>
+ <p>시맨틱 태그는 웹페이지에 의미를 부여합니다...</p>
+ <p><a href="#post-1-full" aria-label="HTML5 시맨틱 태그 완전 정복 전체 글 읽기">더 읽기</a></p>
+ </article>
+ </section>
+</main>
+<!--의미 있는 태그 선택: <div> 대신 <header>, <main>, <article> 등 사용
+구조적 사고: 페이지를 논리적 구역으로 나누어 생각
+접근성 고려: 스크린 리더 사용자도 쉽게 이해할 수 있도록 구성
+확인 문제-->

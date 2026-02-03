@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+ <meta charset="UTF-8">
+ <title>취미 선택하기</title>
+</head>
+<body>
+ <h2>당신의 취미를 선택해주세요 (복수 선택 가능)</h2>
+
+ <form>
+ <input type="checkbox" id="reading" name="hobby_reading" value="독서">
+ <label for="reading"> 독서</label><br>
+
+ <input type="checkbox" id="movie" name="hobby_movie" value="영화감상">
+ <label for="movie"> 영화감상</label><br>
+
+ <input type="checkbox" id="sports" name="hobby_sports" value="운동">
+ <label for="sports"> 운동</label><br>
+
+ <input type="checkbox" id="game" name="hobby_game" value="게임">
+ <label for="game"> 게임</label><br>
+ </form>
+</body>
+</html>
+
+<h2>성별을 선택해주세요 (하나만 선택)</h2>
+
+<form>
+ <input type="radio" id="male" name="gender" value="남성">
+ <label for="male"> 남성</label><br>
+
+ <input type="radio" id="female" name="gender" value="여성">
+ <label for="female"> 여성</label><br>
+
+ <input type="radio" id="other" name="gender" value="기타">
+ <label for="other"> 기타</label><br>
+</form>
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+ <meta charset="UTF-8">
+ <title>회원가입 - 선택 기능 포함</title>
+ <style>
+ .form-section {
+ margin: 20px 0;
+ padding: 15px;
+ border: 1px solid #ddd;
+ border-radius: 5px;
+ }
+ .checkbox-group, .radio-group {
+ margin: 10px 0;
+ }
+ </style>
+</head>
+<body>
+ <h1>회원가입</h1>
+
+ <form>
+ <!-- 기본 정보 -->
+ <div class="form-section">
+ <h3>기본 정보</h3>
+ <label for="username">아이디:</label>
+ <input type="text" id="username" name="username" required><br><br>
+
+ <label for="password">비밀번호:</label>
+ <input type="password" id="password" name="password" required><br><br>
+ </div>
+
+ <!-- 성별 선택 (라디오버튼) -->
+ <div class="form-section">
+ <h3>성별</h3>
+ <div class="radio-group">
+ <input type="radio" id="male" name="gender" value="남성" required>
+ <label for="male">남성</label>
+
+ <input type="radio" id="female" name="gender" value="여성" required>
+ <label for="female">여성</label>
+ </div>
+ </div>
+
+ <!-- 취미 선택 (체크박스) -->
+ <div class="form-section">
+ <h3>관심 분야 (복수 선택 가능)</h3>
+ <div class="checkbox-group">
+ <input type="checkbox" id="tech" name="interest_tech" value="기술">
+ <label for="tech"> IT/기술</label><br>
+
+ <input type="checkbox" id="design" name="interest_design" value="디자인">
+ <label for="design"> 디자인</label><br>
+
+ <input type="checkbox" id="business" name="interest_business" value="비즈니스">
+ <label for="business"> 비즈니스</label><br>
+ </div>
+ </div>
+
+ <!-- 약관 동의 (체크박스) -->
+ <div class="form-section">
+ <input type="checkbox" id="agree" name="agree" value="동의" required>
+ <label for="agree">개인정보 처리방침에 동의합니다 (필수)</label><br>
+
+ <input type="checkbox" id="marketing" name="marketing" value="동의">
+ <label for="marketing">마케팅 정보 수신에 동의합니다 (선택)</label>
+ </div>
+
+ <button type="submit">회원가입</button>
+ </form>
+</body>
+</html>
+
+<!--체크박스: 여러 선택 가능, 각각 다른 name 속성
+- 라디오버튼: 하나만 선택, 같은 name 속성으로 그룹핑
+- label 태그: 접근성과 사용성 향상을 위해 필수 사용
+- required 속성: 필수 선택 항목 지정 가능-->

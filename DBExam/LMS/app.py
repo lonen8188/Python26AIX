@@ -1,12 +1,13 @@
 # pip install flask
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory
 from LMS.common.session import Session
 from LMS.domain.Board import Board
 from LMS.domain.Score import Score
-
-app = Flask(__name__)
+from LMS.service.PostService import PostService
 
 import os
+
+app = Flask(__name__)
 
 UPLOAD_FOLDER = 'uploads/'
 # 폴더가 없으면 자동 생성
@@ -486,6 +487,134 @@ def board_my_list():
             return render_template('board_my_list.html', posts=my_posts)
     finally:
         conn.close()
+
+
+# 파일 게시판 목록
+@app.route('/filesboard')
+def filesboard_list():
+    posts = PostService.get_posts()
+    return render_template('filesboard_list.html', posts=posts)
+
+
+# 파일 게시판 상세 보기
+@app.route('/filesboard/view/<int:post_id>')
+def filesboard_view(post_id):
+    post, files = PostService.get_post_detail(post_id)
+    if not post:
+        return "<script>alert('해당 게시글이 없습니다.'); location.href='/filesboard';</script>"
+    return render_template('filesboard_view.html', post=post, files=files)
+
+# send_from_directory 사용하여 자료 다운로드 가능
+@app.route('/download/<path:filename>')
+def download_file(filename):
+    # 파일이 저장된 폴더(uploads)에서 파일을 찾아 전송합니다.
+    # 프론트 <a href="{{ url_for('download_file', filename=file.save_name) }}" ...> 이부분 처리용
+    # filename은 서버에 저장된 save_name입니다.
+    # 브라우저가 다운로드할 때 보여줄 원본 이름을 쿼리 스트링으로 받거나 DB에서 가져와야 합니다.
+    origin_name = request.args.get('origin_name')
+    return send_from_directory('uploads/', filename, as_attachment=True, download_name=origin_name)
+
+# 단일 파일 게시글 쓰기 (GET: 폼 보여주기, POST: 저장 처리)
+# @app.route('/filesboard/write', methods=['GET', 'POST'])
+# def filesboard_write():
+#     if 'user_id' not in session:
+#     return redirect(url_for('login'))
+#
+# if request.method == 'POST':
+#         title = request.form.get('title')
+#         content = request.form.get('content')
+#         file = request.files.get('file')
+#
+#         if PostService.save_post(session['user_id'], title, content, file):
+#       return "<script>alert('게시글이 등록되었습니다.'); location.href='/filesboard';</script>"
+#         else:
+#             return "<script>alert('등록 실패'); history.back();</script>"
+#
+# return render_template('filesboard_write.html')
+
+# 다중 파일 처리용
+@app.route('/filesboard/write', methods=['GET', 'POST'])
+def filesboard_write():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        title = request.form.get('title')
+        content = request.form.get('content')
+        # 핵심: getlist를 사용해야 리스트 형태로 가져옵니다.
+        files = request.files.getlist('files')
+
+        if PostService.save_post(session['user_id'], title, content, files):
+            return "<script>alert('게시글이 등록되었습니다.'); location.href='/filesboard';</script>"
+        else:
+            return "<script>alert('등록 실패'); history.back();</script>"
+
+    return render_template('filesboard_write.html')
+
+# 단일 파일 게시글 수정용
+# @app.route('/filesboard/edit/<int:post_id>', methods=['GET', 'POST'])
+# def filesboard_edit(post_id):
+#     if 'user_id' not in session:
+#         return redirect(url_for('login'))
+#
+#     if request.method == 'POST':
+#         title = request.form.get('title')
+#         content = request.form.get('content')
+#         file = request.files.get('file')
+#
+#         if PostService.update_post(post_id, title, content, file):
+#             return f"<script>alert('수정되었습니다.'); location.href='/filesboard/view/{post_id}';</script>"
+#         return "<script>alert('수정 실패'); history.back();</script>"
+#
+#     # GET: 기존 데이터 불러오기
+#     post, files = PostService.get_post_detail(post_id)
+#     # 본인 확인 로직 추가
+#     if post['member_id'] != session['user_id']:
+#         return "<script>alert('권한이 없습니다.'); history.back();</script>"
+#
+#     return render_template('filesboard_edit.html', post=post, files=files)
+
+# 다중파일 수정용
+@app.route('/filesboard/edit/<int:post_id>', methods=['GET', 'POST'])
+def filesboard_edit(post_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        title = request.form.get('title')
+        content = request.form.get('content')
+        files = request.files.getlist('files')  # 다중 파일 가져오기
+
+        if PostService.update_post(post_id, title, content, files):
+            return f"<script>alert('수정되었습니다.'); location.href='/filesboard/view/{post_id}';</script>"
+        return "<script>alert('수정 실패'); history.back();</script>"
+
+    # GET 요청 시 기존 데이터 로드
+    post, files = PostService.get_post_detail(post_id)
+    if post['member_id'] != session['user_id']:
+        return "<script>alert('권한이 없습니다.'); history.back();</script>"
+
+    return render_template('filesboard_edit.html', post=post, files=files)
+
+@app.route('/filesboard/delete/<int:post_id>')
+def filesboard_delete(post_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    # 삭제 전 작성자 확인을 위해 정보 조회
+    post, _ = PostService.get_post_detail(post_id)
+
+    if not post:
+        return "<script>alert('이미 삭제된 게시글입니다.'); location.href='/filesboard';</script>"
+
+    # 본인 확인 (또는 관리자 권한)
+    if post['member_id'] != session['user_id'] and session.get('user_role') != 'admin':
+        return "<script>alert('삭제 권한이 없습니다.'); history.back();</script>"
+
+    if PostService.delete_post(post_id):
+        return "<script>alert('성공적으로 삭제되었습니다.'); location.href='/filesboard';</script>"
+    else:
+        return "<script>alert('삭제 중 오류가 발생했습니다.'); history.back();</script>"
 
 @app.route('/')
 def index():

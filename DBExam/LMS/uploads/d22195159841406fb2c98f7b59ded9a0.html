@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>로그인 폼</title>
+</head>
+<body>
+ <h2>로그인</h2>
+ <form>
+ <p>
+ <label for="username">아이디:</label><br>
+ <input type="text" id="username" name="username">
+ </p>
+ <p>
+ <label for="password">비밀번호:</label><br>
+ <input type="password" id="password" name="password">
+ </p>
+ <button type="submit">로그인</button>
+ </form>
+</body>
+</html>
+
+
+<form>
+ <p>
+ <label for="username">아이디:</label><br>
+ <input type="text" id="username" name="username"
+ placeholder="아이디를 입력하세요" required>
+ </p>
+ <p>
+ <label for="password">비밀번호:</label><br>
+ <input type="password" id="password" name="password"
+ placeholder="비밀번호를 입력하세요"
+ minlength="8" required>
+ </p>
+ <button type="submit">로그인</button>
+</form>
+<!--placeholder: 입력 전 안내 문구 표시
+- required: 필수 입력 필드로 지정
+- minlength="8": 최소 8자 이상 입력해야 함-->
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>회원가입 폼</title>
+</head>
+<body>
+ <h2>회원가입</h2>
+ <form>
+ <!-- 사용자에게 보이는 입력 필드들 -->
+ <p>
+ <label for="email">이메일:</label><br>
+ <input type="email" id="email" name="email" required>
+ </p>
+ <p>
+ <label for="newPassword">비밀번호:</label><br>
+ <input type="password" id="newPassword" name="password"
+ minlength="8" required>
+ </p>
+ <p>
+ <label for="confirmPassword">비밀번호 확인:</label><br>
+ <input type="password" id="confirmPassword" name="confirmPassword"
+ minlength="8" required>
+ </p>
+
+ <!-- 숨겨진 정보들 (사용자에게는 보이지 않음) -->
+ <input type="hidden" name="signup_source" value="main_page">
+ <input type="hidden" name="referrer" value="google_ads">
+ <input type="hidden" name="form_version" value="2.1">
+
+ <button type="submit">회원가입</button>
+ </form>
+
+ <script>
+ // 폼이 전송될 때 숨겨진 값들도 함께 전송되는지 확인
+ document.querySelector('form').addEventListener('submit', function(e) {
+ e.preventDefault(); // 실제 전송은 막고 콘솔에서 확인
+
+ const formData = new FormData(this);
+ console.log('전송될 데이터:');
+ for (let [key, value] of formData.entries()) {
+ if (key.includes('password')) {
+ console.log(key + ': ' + '●'.repeat(value.length));
+ } else {
+ console.log(key + ': ' + value);
+ }
+ }
+ });
+ </script>
+</body>
+</html>
+<!--  type="password": 입력 내용을 ●●●로 숨김 처리
+      type="hidden": 사용자에게는 보이지 않지만 서버로 전송되는 정보
+     - 보안을 위해 비밀번호 필드에는 minlength, required 속성 활용
+     - 숨겨진 필드는 추가 정보 전달에 유용
+-->
