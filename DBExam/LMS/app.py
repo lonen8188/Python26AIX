@@ -1,11 +1,16 @@
 # pip install flask
-from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory
+import json
+from uuid import uuid4
+
+from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory, make_response
 from LMS.common.session import Session
 from LMS.domain.Board import Board
 from LMS.domain.Score import Score
-from LMS.service.PostService import PostService
+from LMS.domain.item import Item
+from LMS.service import *
 
 import os
+
 
 app = Flask(__name__)
 
@@ -248,8 +253,8 @@ def member_edit():
             new_pw = request.form.get('password')
 
             if new_pw:  # 비밀번호 입력 시에만 변경
-                sql = "UPDATE members SET name = %s, password = %s WHERE id = %s"
-                cursor.execute(sql, (new_name, new_pw, session['user_id']))
+                sql = "UPDATE members SET password = %s WHERE id = %s"
+                cursor.execute(sql, (new_pw, session['user_id']))
             else:  # 이름만 변경
                 sql = "UPDATE members SET name = %s WHERE id = %s"
                 cursor.execute(sql, (new_name, session['user_id']))
@@ -260,6 +265,27 @@ def member_edit():
     finally:
         conn.close()
 
+
+
+@app.route('/mypage')
+def mypage():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    conn = Session.get_connection()
+    try:
+        with conn.cursor() as cursor:
+            # 1. 내 상세 정보 조회
+            cursor.execute("SELECT * FROM members WHERE id = %s", (session['user_id'],))
+            user_info = cursor.fetchone()
+
+            # 2. 내가 쓴 게시글 개수 조회 (작성하신 boards 테이블 활용)
+            cursor.execute("SELECT COUNT(*) as board_count FROM boards WHERE member_id = %s", (session['user_id'],))
+            board_count = cursor.fetchone()['board_count']
+
+            return render_template('mypage.html', user=user_info, board_count=board_count)
+    finally:
+        conn.close()
 
 # @app.route('/score/members')
 # def score_member_list():
@@ -450,26 +476,6 @@ def score_my():
         conn.close()
 
 
-@app.route('/mypage')
-def mypage():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-
-    conn = Session.get_connection()
-    try:
-        with conn.cursor() as cursor:
-            # 1. 내 상세 정보 조회
-            cursor.execute("SELECT * FROM members WHERE id = %s", (session['user_id'],))
-            user_info = cursor.fetchone()
-
-            # 2. 내가 쓴 게시글 개수 조회 (작성하신 boards 테이블 활용)
-            cursor.execute("SELECT COUNT(*) as board_count FROM boards WHERE member_id = %s", (session['user_id'],))
-            board_count = cursor.fetchone()['board_count']
-
-            return render_template('mypage.html', user=user_info, board_count=board_count)
-    finally:
-        conn.close()
-
 
 @app.route('/board/my')
 def board_my_list():
@@ -488,6 +494,30 @@ def board_my_list():
     finally:
         conn.close()
 
+
+#  -- 1. 게시글 본문 테이블
+# CREATE TABLE posts (
+    # id INT AUTO_INCREMENT PRIMARY KEY,
+    # member_id INT NOT NULL,           -- 작성자 (members 테이블 외래키)
+    # title VARCHAR(200) NOT NULL,
+    # content TEXT NOT NULL,
+    # view_count INT DEFAULT 0,         -- 조회수 추가
+    # created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    # updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    # FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE
+# );
+
+# -- 2. 첨부파일 관리 테이블
+# CREATE TABLE attachments (
+    # id INT AUTO_INCREMENT PRIMARY KEY,
+    # post_id INT NOT NULL,             -- 어떤 게시글의 파일인지
+    # origin_name VARCHAR(255) NOT NULL, -- 사용자가 올린 실제 파일명
+    # save_name VARCHAR(255) NOT NULL,   -- 서버에 저장된 고유 파일명 (중복방지)
+    # file_path VARCHAR(500) NOT NULL,   -- 저장된 경로
+    # file_size INT,                    -- 파일 용량(Byte)
+    # created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    # FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+# );
 
 # 파일 게시판 목록
 @app.route('/filesboard')
@@ -513,6 +543,9 @@ def download_file(filename):
     # 브라우저가 다운로드할 때 보여줄 원본 이름을 쿼리 스트링으로 받거나 DB에서 가져와야 합니다.
     origin_name = request.args.get('origin_name')
     return send_from_directory('uploads/', filename, as_attachment=True, download_name=origin_name)
+    #   return send_from_directory('uploads/', filename)는 브라우져에서 바로 열어버림
+    #   as_attachment=True 로 하면 파일 다운로드 창을 띄움
+    #   저장할 파일명은 download_name=origin_name 로 지정
 
 # 단일 파일 게시글 쓰기 (GET: 폼 보여주기, POST: 저장 처리)
 # @app.route('/filesboard/write', methods=['GET', 'POST'])
@@ -603,6 +636,7 @@ def filesboard_delete(post_id):
 
     # 삭제 전 작성자 확인을 위해 정보 조회
     post, _ = PostService.get_post_detail(post_id)
+    # _은 리턴값을 사용하지 않겠다 라는 관례적인 표현 (_) 사용하지 않는 변수
 
     if not post:
         return "<script>alert('이미 삭제된 게시글입니다.'); location.href='/filesboard';</script>"
@@ -615,6 +649,170 @@ def filesboard_delete(post_id):
         return "<script>alert('성공적으로 삭제되었습니다.'); location.href='/filesboard';</script>"
     else:
         return "<script>alert('삭제 중 오류가 발생했습니다.'); history.back();</script>"
+
+##################################################################################################
+# 1. 상품 이미지 전용 경로 설정
+ITEM_UPLOAD_FOLDER = os.path.join(app.config['UPLOAD_FOLDER'], 'item')
+
+# 폴더가 없으면 자동 생성 (uploads/item)
+if not os.path.exists(ITEM_UPLOAD_FOLDER):
+    os.makedirs(ITEM_UPLOAD_FOLDER)
+
+product_service = ProductService()
+
+@app.route('/items/register', methods=['GET', 'POST'])
+def register_item():
+    # 1. POST 방식: 실제 등록 로직 처리
+    if request.method == 'POST':
+        # 이미지 파일 처리
+        files = request.files.getlist('images')
+        image_filenames = []
+        ITEM_UPLOAD_FOLDER = os.path.join(app.config['UPLOAD_FOLDER'], 'item')
+
+        for file in files:
+            if file and file.filename:
+                filename = f"item_{uuid4().hex}_{file.filename}"
+                file_path = os.path.join(ITEM_UPLOAD_FOLDER, filename)
+                file.save(file_path)
+                image_filenames.append(f"item/{filename}")
+
+        # 서비스 호출 (Item 객체 생성 및 DB 저장)
+        new_item = ProductService.create_item_from_form(request.form)
+        success = product_service.register_product(new_item, image_filenames)
+
+        if success:
+            return redirect(url_for('item_list'))
+        else:
+            return "상품 등록에 실패했습니다.", 500
+
+    # 2. GET 방식: 등록 폼 화면 보여주기
+    # templates/item/register.html 경로를 사용합니다.
+    return render_template('item/register.html', categories=Item.CATEGORIES)
+
+
+@app.route('/items')
+def item_list():
+    """상품 목록 페이지"""
+    # 1. ProductService의 정적 메서드를 호출하여 상품 리스트를 가져옵니다.
+    # (대표 이미지 경로인 main_image가 포함된 Item 객체 리스트입니다.)
+    items = product_service.get_all_products()
+
+    # 2. 미리 만들어둔 상품 목록 템플릿으로 데이터를 전달합니다.
+    return render_template('item/list.html', items=items)
+
+# 현재 HTML은 /uploads/item/파일명.jpg를 요청하고 있습니다.
+# 하지만 Flask는 기본적으로 static 폴더 외에는 보안상 접근을 차단합니다.
+# 위와 같이 @app.route('/uploads/<path:filename>')를 정의해 줘야만,
+# Flask가 "아, /uploads/로 시작하는 요청은 uploads 폴더 안에서 파일을 찾아 보내주라는 거구나!"라고 이해합니다.
+
+@app.route('/uploads/<path:filename>')
+def serve_uploads(filename):
+    # 실제 파일이 들어있는 폴더 경로 (프로젝트 루트의 uploads 폴더)
+    upload_path = os.path.join(os.getcwd(), 'uploads')
+    return send_from_directory(upload_path, filename)
+
+
+@app.route('/items/<int:item_id>')
+def item_detail(item_id):
+    """상품 상세 페이지"""
+    item = ProductService.get_product_by_id(item_id)
+
+    if not item:
+        return "상품을 찾을 수 없습니다.", 404
+
+    return render_template('item/detail.html', item=item)
+
+##########################################################################################################
+# 장바구니는 쿠키를사용 한다. (쿠키는 브라우져에 저장되는 데이터)
+@app.route('/cart/add/<int:item_id>', methods=['POST'])
+def add_to_cart(item_id):
+    quantity = int(request.form.get('quantity', 1))
+
+    # 1. 기존 쿠키에서 장바구니 가져오기
+    cart_cookie = request.cookies.get('cart')
+    if cart_cookie:
+        cart = json.loads(cart_cookie)  # 문자열을 딕셔너리로 변환
+    else:
+        cart = {}
+
+    # 2. 수량 업데이트
+    item_id_str = str(item_id)
+    if item_id_str in cart:
+        cart[item_id_str] += quantity
+    else:
+        cart[item_id_str] = quantity
+
+    # 3. 응답 객체 생성 및 쿠키 설정 from flask import make_response
+    res = make_response(f"<script>alert('장바구니에 담겼습니다!'); location.href='/items';</script>")
+
+    # JSON으로 다시 변환하여 쿠키에 저장 (유효기간 3일 설정)
+    res.set_cookie('cart', json.dumps(cart), max_age=60 * 60 * 24 * 3)
+
+    return res
+
+
+
+@app.route('/cart')
+def view_cart():
+    cart_cookie = request.cookies.get('cart')
+    cart_items = []
+    total_price = 0
+
+    if cart_cookie:
+        cart = json.loads(cart_cookie)
+        for item_id, quantity in cart.items():
+            # 이전에 만든 정적 메서드 활용
+            item = ProductService.get_product_by_id(int(item_id))
+            if item:
+                item.order_qty = quantity  # 수량 추가
+                item.subtotal = item.price * quantity
+                cart_items.append(item)
+                total_price += item.subtotal
+
+    return render_template('item/cart.html', cart_items=cart_items, total_price=total_price)
+
+
+@app.route('/cart/delete/<int:item_id>')
+def delete_cart_item(item_id):
+    cart_cookie = request.cookies.get('cart')
+    if not cart_cookie:
+        return redirect(url_for('view_cart'))
+
+    cart = json.loads(cart_cookie)
+    item_id_str = str(item_id)
+
+    if item_id_str in cart:
+        cart.pop(item_id_str)  # 해당 상품 삭제
+
+    res = make_response(redirect(url_for('view_cart')))
+    # 업데이트된 장바구니를 다시 쿠키에 저장
+    res.set_cookie('cart', json.dumps(cart), max_age=60 * 60 * 24 * 3)
+    return res
+
+# 쿠키 사용 시 주의점 (꿀팁)
+# 용량 제한: 쿠키는 보통 4KB가 한계입니다. 상품을 수백 개 담는 게 아니라면 충분하지만, 너무 많은 데이터를 담으면 안 됩니다.
+#
+# 보안: 쿠키는 사용자가 직접 값을 수정할 수 있습니다.
+# 그래서 **결제 단계(주문하기)**에서는 반드시 쿠키의 가격 정보를 믿지 말고,
+# DB에서 실제 가격을 다시 조회해서 계산해야 합니다. (우리가 만든 OrderService 방식처럼요!)
+############################################################################################################
+
+@app.route('/order/<int:item_id>', methods=['POST'])
+def place_order(item_id):
+    # 로그인 기능을 아직 안 붙였다면 임시로 member_id = 1 사용
+    # 실제로는 session.get('member_id') 등을 사용합니다.
+    member_id = 1
+    quantity = 1  # 상세페이지에서 넘겨받은 수량으로 대체 가능
+
+    success, message = OrderService.create_order(member_id, item_id, quantity)
+
+    if success:
+        # 주문 성공 시 주문 내역 페이지나 상품 목록으로 이동
+        return f"<script>alert('{message}'); location.href='/items';</script>"
+    else:
+        return f"<script>alert('{message}'); history.back();</script>"
+
+
 
 @app.route('/')
 def index():
