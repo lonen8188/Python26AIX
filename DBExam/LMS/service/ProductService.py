@@ -137,3 +137,60 @@ class ProductService:
 
         finally:
             cursor.close()
+
+    @staticmethod
+    def update_product(item_id, item_data, new_images=None):
+        conn = Session.get_connection()
+        cursor = conn.cursor()
+
+        try:
+            # 1. 기본 정보 업데이트 (이름, 가격, 재고, 카테고리 등)
+            sql = """
+                UPDATE items 
+                SET name=%s, price=%s, stock=%s, category=%s, code=%s 
+                WHERE id=%s
+            """
+            cursor.execute(sql, (
+                item_data['name'], item_data['price'],
+                item_data['stock'], item_data['category'],
+                item_data['code'], item_id
+            ))
+
+            # 2. 새 이미지가 업로드된 경우 처리 (간단하게 추가하는 방식)
+            if new_images:
+                for img_path in new_images:
+                    cursor.execute(
+                        "INSERT INTO item_images (item_id, image_path) VALUES (%s, %s)",
+                        (item_id, img_path)
+                    )
+
+            conn.commit()
+            return True
+        except Exception as e:
+            conn.rollback()
+            print(f"수정 에러: {e}")
+            return False
+        finally:
+            cursor.close()
+
+    @staticmethod
+    def delete_product_with_files(item_id):
+        conn = Session.get_connection()
+        cursor = conn.cursor()
+
+        try:
+            # 1. 삭제 전, 서버에서 지워야 할 이미지 경로들 미리 백업
+            cursor.execute("SELECT image_path FROM item_images WHERE item_id = %s", (item_id,))
+            images = cursor.fetchall()
+
+            # 2. 상품 삭제 (CASCADE 설정 덕분에 item_images, order_items 등도 자동 삭제됨)
+            cursor.execute("DELETE FROM items WHERE id = %s", (item_id,))
+
+            conn.commit()
+            return True, images
+        except Exception as e:
+            conn.rollback()
+            print(f"DB 삭제 에러: {e}")
+            return False, []
+        finally:
+            cursor.close()

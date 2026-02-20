@@ -31,6 +31,7 @@
                         <ul class="dropdown-menu shadow">
                             <li><a class="dropdown-item" href="/items">상품목록</a></li>
                             <li><a class="dropdown-item" href="/cart">장바구니</a></li>
+                            <li><a class="dropdown-item" href="/orders">주문내역</a></li>
 
                             {# 관리자나 매니저만 상품을 등록할 수 있게 제한 #}
                             {% if session.get('user_role') in ('admin', 'manager') %}

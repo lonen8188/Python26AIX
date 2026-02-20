@@ -64,10 +64,14 @@
                         <span class="fs-5 fw-bold text-primary">{{ "{:,}".format(total_price) }}원</span>
                     </div>
                     <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-primary btn-lg" onclick="location.href='/order/checkout'">
-                            주문하기
-                        </button>
-                        <a href="/items" class="btn btn-outline-secondary">쇼핑 계속하기</a>
+                        <form action="/order/checkout" method="post">
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    주문하기
+                                </button>
+                                <a href="/items" class="btn btn-outline-secondary">쇼핑 계속하기</a>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>

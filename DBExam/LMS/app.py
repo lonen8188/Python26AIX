@@ -1,5 +1,6 @@
 # pip install flask
 import json
+import uuid
 from uuid import uuid4
 
 from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory, make_response
@@ -722,11 +723,70 @@ def item_detail(item_id):
 
     return render_template('item/detail.html', item=item)
 
+
+@app.route('/items/edit/<int:item_id>', methods=['GET', 'POST'])
+def edit_item(item_id):
+    item = ProductService.get_product_by_id(item_id)
+
+    if request.method == 'POST':
+        item_data = {
+            'name': request.form['name'],
+            'price': int(request.form['price']),
+            'stock': int(request.form['stock']),
+            'category': request.form['category'],
+            'code': request.form['code']
+        }
+
+        new_img_paths = []
+        files = request.files.getlist('images')
+
+        for file in files:
+            if file and file.filename:
+                # 1. 원본 파일의 확장자 추출
+                ext = os.path.splitext(file.filename)[1]
+                # 2. UUID로 고유한 파일명 생성
+                new_filename = f"{uuid.uuid4()}{ext}"
+
+                # 3. 저장 경로 설정 및 저장
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'item', new_filename)
+                file.save(file_path)
+
+                # 4. DB에 들어갈 상대 경로 저장
+                new_img_paths.append(f"item/{new_filename}")
+
+        if ProductService.update_product(item_id, item_data, new_img_paths):
+            return f"<script>alert('수정되었습니다.'); location.href='/items/{item_id}';</script>"
+        else:
+            return "<script>alert('수정 실패'); history.back();</script>"
+
+    return render_template('item/edit.html', item=item)
+
+
+@app.route('/items/delete/<int:item_id>')
+def delete_item(item_id):
+    # 권한 체크 (admin, manager)
+    if session.get('user_role') not in ['admin', 'manager']:
+        return "<script>alert('권한이 없습니다.'); history.back();</script>"
+
+    # DB 삭제 및 삭제된 이미지 경로 리스트 가져오기
+    success, image_list = ProductService.delete_product_with_files(item_id)
+
+    if success:
+        # 실제 서버 파일 삭제
+        for img in image_list:
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], img['image_path'])
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
+        return "<script>alert('상품과 관련된 모든 정보가 삭제되었습니다.'); location.href='/items';</script>"
+    else:
+        return "<script>alert('삭제 중 오류가 발생했습니다.'); history.back();</script>"
+
 ##########################################################################################################
 # 장바구니는 쿠키를사용 한다. (쿠키는 브라우져에 저장되는 데이터)
 @app.route('/cart/add/<int:item_id>', methods=['POST'])
 def add_to_cart(item_id):
-    quantity = int(request.form.get('quantity', 1))
+    quantity = int(request.form.get('quantity', 1)) # 뒤에 ,1은 기본값 데이터가 안넘어왔을 때 처리용
 
     # 1. 기존 쿠키에서 장바구니 가져오기
     cart_cookie = request.cookies.get('cart')
@@ -801,8 +861,8 @@ def delete_cart_item(item_id):
 def place_order(item_id):
     # 로그인 기능을 아직 안 붙였다면 임시로 member_id = 1 사용
     # 실제로는 session.get('member_id') 등을 사용합니다.
-    member_id = 1
-    quantity = 1  # 상세페이지에서 넘겨받은 수량으로 대체 가능
+    member_id = session.get('user_id')
+    quantity = int(request.form.get('quantity', 1)) # 뒤에 ,1은 기본값 데이터가 안넘어왔을 때 처리용
 
     success, message = OrderService.create_order(member_id, item_id, quantity)
 
@@ -812,6 +872,72 @@ def place_order(item_id):
     else:
         return f"<script>alert('{message}'); history.back();</script>"
 
+
+@app.route('/order/checkout', methods=['POST'])
+def checkout():
+    # 1. 쿠키에서 장바구니 데이터 읽기
+    cart_cookie = request.cookies.get('cart')
+    if not cart_cookie:
+        return "<script>alert('주문할 상품이 없습니다.'); history.back();</script>"
+
+    cart_data = json.loads(cart_cookie)
+    member_id = session['user_id']  # 테스트용 임시 ID
+
+    # 2. 주문 서비스 호출
+    success, message = OrderService.checkout(member_id, cart_data)
+
+    if success:
+        # 주문 성공 시 쿠키 삭제 후 이동
+        res = make_response(f"<script>alert('{message}'); location.href='/items';</script>")
+        res.set_cookie('cart', '', max_age=0)  # 쿠키 비우기
+        return res
+    else:
+        return f"<script>alert('{message}'); history.back();</script>"
+#################################################################################################################
+
+@app.route('/order/<int:item_id>', methods=['POST'])
+def place_order_direct(item_id):
+    # 1. 상세 페이지 폼에서 선택한 수량 가져오기
+    quantity = int(request.form.get('quantity', 1))
+    member_id = session.get('user_id')  # 테스트용 임시 ID
+
+    # 2. 단일 상품 주문을 위해 데이터를 딕셔너리 형태로 변환 (OrderService.checkout 구조 활용)
+    # OrderService.checkout은 {item_id: quantity} 형태의 cart_data를 받습니다.
+    direct_cart_data = {str(item_id): quantity}
+
+    # 3. 주문 서비스 호출
+    success, message = OrderService.checkout(member_id, direct_cart_data)
+
+    if success:
+        # 바로 구매 성공 시 주문 완료 알림 후 상품 목록으로 이동
+        return f"<script>alert('{message}'); location.href='/items';</script>"
+    else:
+        # 재고 부족 등 실패 시 이전 페이지로
+        return f"<script>alert('{message}'); history.back();</script>"
+
+
+@app.route('/orders')
+def order_list():
+    member_id = session.get('user_id')
+    if not member_id:
+        return "<script>alert('로그인이 필요합니다.'); location.href='/login';</script>"
+
+    orders = OrderService.get_member_orders(member_id)
+    return render_template('order/list.html', orders=orders)
+
+
+@app.route('/orders/<int:order_id>')
+def order_detail(order_id):
+    member_id = session.get('user_id')
+    if not member_id:
+        return redirect(url_for('login'))
+
+    order, items = OrderService.get_order_detail(order_id, member_id)
+
+    if not order:
+        return "<script>alert('주문 내역을 찾을 수 없습니다.'); history.back();</script>"
+
+    return render_template('order/detail.html', order=order, items=items)
 
 
 @app.route('/')
