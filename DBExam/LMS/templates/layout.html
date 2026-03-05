@@ -45,12 +45,13 @@
 
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="scoreDropdown" role="button" data-bs-toggle="dropdown">
-                            성적관리
+                            학습관리
                         </a>
                         <ul class="dropdown-menu shadow">
                             {# 1. 모든 로그인 사용자가 볼 수 있는 메뉴 #}
                             {% if session.get('user_id') %}
                                 <li><a class="dropdown-item" href="/score/my">내 성적 조회</a></li>
+                                <li><a class="dropdown-item" href="/ai-detect">내 ai 객체 탐지</a></li>
                             {% endif %}
 
                             {# 2. 관리자/매니저만 볼 수 있는 메뉴 #}
