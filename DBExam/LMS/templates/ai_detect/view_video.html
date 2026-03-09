@@ -1,0 +1,97 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ post.title }}</h5>
+                    <span class="badge bg-success">{{ post.status }}</span>
+                </div>
+                <div class="card-body p-0 bg-black">
+                    <video id="mainVideo" controls class="w-100" style="max-height: 500px;">
+                        <source src="/uploads/{{ post.result_video_path }}" type="video/mp4">
+                        브라우저가 영상을 지원하지 않습니다.
+                    </video>
+                </div>
+                <div class="card-footer bg-white">
+                    <p class="">{{ post.content }}</p>
+                    <small class="text-muted">분석 완료일: {{ post.created_at }} | 총 프레임: {{ post.total_frames }}</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 h-100" style="max-height: 600px;">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-list-check"></i> 실시간 탐지 내역
+                </div>
+                <div class="card-body overflow-auto" id="timelineBody">
+                    <div id="noData" class="text-center py-5">
+                        <p class="text-muted small">영상을 재생하면<br>탐지 정보가 여기에 표시됩니다.</p>
+                    </div>
+                    <ul class="list-group list-group-flush" id="objectList">
+                        </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // DB에서 가져온 프레임별 상세 데이터를 JS 객체로 변환
+    const videoDetails = {{ details | tojson }};
+    const videoElement = document.getElementById('mainVideo');
+    const objectList = document.getElementById('objectList');
+    const noData = document.getElementById('noData');
+
+    // 영상 재생 시간이 바뀔 때마다 실행 (타임라인 동기화)
+    videoElement.addEventListener('timeupdate', function() {
+        const currentTime = videoElement.currentTime;
+        const fps = {{ post.total_frames / 10 if post.total_frames > 0 else 30 }}; // 대략적인 FPS 계산 또는 고정값
+        const currentFrame = Math.floor(currentTime * 30); // 30fps 기준
+
+        // 현재 프레임과 가장 가까운 분석 데이터 찾기
+        const closestDetail = videoDetails.reduce((prev, curr) => {
+            return (Math.abs(curr.frame_number - currentFrame) < Math.abs(prev.frame_number - currentFrame)) ? curr : prev;
+        }, videoDetails[0]);
+
+        if (closestDetail && Math.abs(closestDetail.frame_number - currentFrame) < 15) {
+            updateTimeline(closestDetail.detected_objects);
+        }
+    });
+
+    function updateTimeline(objects) {
+        noData.style.display = 'none';
+        objectList.innerHTML = '';
+        
+        const parsedObjects = JSON.parse(objects);
+        
+        if (parsedObjects.length === 0) {
+            objectList.innerHTML = '<li class="list-group-item small text-muted">탐지된 객체 없음</li>';
+            return;
+        }
+
+        parsedObjects.forEach(obj => {
+            const li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between align-items-center animate__animated animate__fadeIn';
+            li.innerHTML = `
+                <div>
+                    <span class="fw-bold">${obj.name}</span>
+                    <br><small class="text-muted">Confidence: ${(obj.conf * 100).toFixed(1)}%</small>
+                </div>
+                <span class="badge bg-info text-dark">Detected</span>
+            `;
+            objectList.appendChild(li);
+        });
+    }
+</script>
+
+<style>
+    #timelineBody::-webkit-scrollbar { width: 5px; }
+    #timelineBody::-webkit-scrollbar-thumb { background: #ddd; border-radius: 10px; }
+    .animate__fadeIn { animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+</style>
+{% endblock %}

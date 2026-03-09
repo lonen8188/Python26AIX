@@ -1089,7 +1089,181 @@ def ai_detect_view(post_id):
 
 
 
-#######################################################################################################################
+#################################################YOLO 이미지 객체 탐지 END######################################################################
+#################################################YOLO 영상 객체 탐지 END######################################################################
+
+# -- 1. 영상 게시글 및 상태 관리 테이블
+# CREATE TABLE ai_video_posts (
+#     id INT AUTO_INCREMENT PRIMARY KEY,
+#     member_id INT,                        -- members 테이블의 id가 INT이므로 동일하게 설정
+#     title VARCHAR(255) NOT NULL,
+#     content TEXT,
+#     origin_video_path VARCHAR(255),       -- 원본 영상 경로
+#     result_video_path VARCHAR(255),       -- 박싱 처리된 영상 경로
+#     status VARCHAR(20) DEFAULT 'PENDING', -- PENDING, PROCESSING, COMPLETED, FAILED
+#     total_frames INT DEFAULT 0,           -- 총 프레임 수
+#     created_at DATETIME DEFAULT NOW(),
+#     -- member_id 타입이 INT이므로 정상적으로 연결됩니다.
+#     FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE
+# );
+#
+# -- 2. 영상 프레임별 상세 탐지 결과 테이블
+# CREATE TABLE ai_video_details (
+#     id INT AUTO_INCREMENT PRIMARY KEY,
+#     video_post_id INT,                    -- ai_video_posts 테이블 참조
+#     frame_number INT,                     -- 프레임 번호 (타임라인용)
+#     detected_objects JSON,                -- 해당 시점의 객체 정보 [ {"name":"car", "conf":0.9}, ... ]
+#     FOREIGN KEY (video_post_id) REFERENCES ai_video_posts(id) ON DELETE CASCADE
+# );
+
+# service/AiVideoService.py에 핵심로직 구현
+
+import cv2
+import json
+import os
+from LMS.service.AiVideoService import AiVideoService
+app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB까지 허용
+
+# 1. 영상 탐지 목록 (이미지와 분리해서 관리하거나 같이 관리 가능)
+@app.route('/ai-detect/video')
+def video_list():
+
+
+    conn = Session.get_connection()
+    # DictCursor를 사용하면 post.title 처럼 이름으로 접근하기 편합니다.
+    cursor = conn.cursor()
+
+    # 최신순으로 정렬해서 가져오기
+    sql = "SELECT * FROM ai_video_posts ORDER BY created_at DESC"
+    cursor.execute(sql)
+    posts = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render_template('ai_detect/video_list.html', posts=posts)
+
+
+# 2. 영상 업로드 페이지
+@app.route('/ai-detect/video/write')
+def write_video_form():
+    return render_template('ai_detect/video_write.html')
+
+
+def process_video_ai(video_post_id, origin_path, filename):  # 파라미터 확인
+    # 1. 원본 영상 로드 (정보 추출을 위해 먼저 실행)
+    cap = cv2.VideoCapture(origin_path)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    # 2. 결과 저장 경로 및 브라우저용 코덱 설정
+    # 파일명에서 확장자를 제거하고 .mp4로 강제 지정
+    output_filename = f"res_{filename.split('.')[0]}.mp4"
+    output_path = os.path.join(app.config['UPLOAD_FOLDER'], 'ai_detect', output_filename)
+
+    # 브라우저 호환성이 가장 좋은 'avc1' 코덱 사용
+    fourcc = cv2.VideoWriter_fourcc(*'avc1')
+
+    # 변수(fps, width, height)가 정의된 후 out 객체 생성
+    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+
+    frame_count = 0
+
+    # 3. 프레임별 루프 시작
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # YOLO 분석
+        results = model.predict(frame, verbose=False)
+
+        # 탐지 데이터 추출 및 DB 저장 (5프레임마다)
+        detected_objects = []
+        for box in results[0].boxes:
+            cls = int(box.cls[0])
+            conf = float(box.conf[0])
+            name = model.names[cls]
+            coords = box.xyxy[0].tolist()
+
+            detected_objects.append({
+                'name': name,
+                'conf': round(conf, 2),
+                'bbox': [round(x, 1) for x in coords]
+            })
+
+        if frame_count % 5 == 0:
+            AiVideoService.save_video_detail(video_post_id, frame_count, detected_objects)
+
+        # 결과 프레임 쓰기
+        annotated_frame = results[0].plot()
+        out.write(annotated_frame)
+
+        frame_count += 1
+
+    # 자원 해제 (반드시 순서대로)
+    cap.release()
+    out.release()
+
+    # 4. 분석 완료 상태 업데이트 (실제 저장된 output_filename 사용)
+    AiVideoService.update_video_status(video_post_id, 'COMPLETED', f"ai_detect/{output_filename}", total_frames)
+
+
+
+@app.route('/ai-detect/video/process', methods=['POST'])
+def process_video_ai_route():
+    if 'video' not in request.files:
+        return "<script>alert('파일이 없습니다.'); history.back();</script>"
+
+    file = request.files['video']
+    if file and file.filename:
+        # 1. 파일명 및 경로 설정
+        ext = os.path.splitext(file.filename)[1]
+        filename = f"{uuid.uuid4()}{ext}"
+        origin_path = os.path.join(app.config['UPLOAD_FOLDER'], 'ai_detect', filename)
+        file.save(origin_path)
+
+        # 2. DB 초기 레코드 생성 (PENDING 상태)
+        video_post_id = AiVideoService.create_video_post(
+            session.get('user_id'),
+            request.form['title'],
+            request.form['content'],
+            f"ai_detect/{filename}"
+        )
+
+        if video_post_id:
+            # 3. 실제 프레임 분석 실행 (아까 만든 함수 호출)
+            output_filename = f"res_{filename}"
+            # 주의: 영상이 길면 여기서 브라우저가 대기(Timeout)할 수 있습니다.
+            process_video_ai(video_post_id, origin_path, output_filename)
+
+            # 4. 완료 후 상세 페이지로 이동
+            return redirect(url_for('view_video', post_id=video_post_id))
+
+    return "<script>alert('분석 실패'); history.back();</script>"
+
+@app.route('/ai-video/view/<int:post_id>')
+def view_video(post_id):
+    conn = Session.get_connection()
+    cursor = conn.cursor()
+
+    # 1. 메인 포스트 정보
+    cursor.execute("SELECT * FROM ai_video_posts WHERE id = %s", (post_id,))
+    post = cursor.fetchone()
+
+    # 2. 프레임별 상세 내역
+    cursor.execute(
+        "SELECT frame_number, detected_objects FROM ai_video_details WHERE video_post_id = %s ORDER BY frame_number",
+        (post_id,))
+    details = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render_template('ai_detect/view_video.html', post=post, details=details)
+#######################################  동영상 처리 AI END ####################################################
 
 @app.route('/')
 def index():
