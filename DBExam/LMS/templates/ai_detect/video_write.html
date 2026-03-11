@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow-sm mx-auto" style="max-width: 600px;">
+        <div class="card-header bg-dark text-white">
+            <h4 class="mb-0">Video AI 분석 요청</h4>
+        </div>
+        <div class="card-body">
+           <form action="/ai-detect/video/process" method="post" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label class="form-label">영상 제목</label>
+                    <input type="text" name="title" class="form-control" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">영상 설명</label>
+                    <textarea name="content" class="form-control" rows="3" placeholder="영상에 대한 설명을 입력하세요"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">영상 파일</label>
+                    <input type="file" name="video" class="form-control" accept="video/*" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">AI 분석 시작</button>
+            </form>
+            
+            <div id="loading" class="text-center mt-3" style="display:none;">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2">AI가 영상을 프레임 단위로 분석 중입니다...<br>잠시만 기다려주세요.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('videoForm').onsubmit = function() {
+    document.getElementById('subBtn').disabled = true;
+    document.getElementById('loading').style.display = 'block';
+};
+</script>
+{% endblock %}
