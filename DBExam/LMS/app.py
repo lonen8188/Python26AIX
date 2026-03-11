@@ -1264,6 +1264,59 @@ def view_video(post_id):
 
     return render_template('ai_detect/view_video.html', post=post, details=details)
 #######################################  동영상 처리 AI END ####################################################
+######################################## 유튜브 동영상 객체 탐지 ################################################
+# app.py
+import yt_dlp # pip install yt-dlp
+
+
+@app.route('/ai-detect/youtube/write')
+def youtube_write_form():
+    return render_template('ai_detect/youtube_write.html')
+
+
+@app.route('/ai-detect/youtube/process', methods=['POST'])
+def process_youtube_route():
+    yt_url = request.form.get('yt_url')
+    title = request.form.get('title')
+    content = request.form.get('content')
+
+    # 1. 파일명 생성 (임시 파일명)
+    filename = f"yt_{uuid.uuid4()}.mp4"
+    save_path = os.path.join(app.config['UPLOAD_FOLDER'], 'ai_detect', filename)  # [cite: 2026-02-03]
+
+    # 2. yt-dlp 옵션 설정 (유튜브를 서버로 다운로드)
+    ydl_opts = {
+        # 'bestvideo'만 지정하면 오디오를 가져오지 않습니다.
+        # [ext=mp4]를 붙여서 우리 YOLO 분석 로직과 호환되게 만듭니다.
+        'format': 'bestvideo[ext=mp4]/best[ext=mp4]/best',
+        'outtmpl': save_path,
+        'noplaylist': True,  # 플레이리스트인 경우 첫 영상만 다운로드
+    }
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([yt_url])
+
+        # 3. DB에 게시글 생성 (PENDING 상태)
+        # member_id가 INT임을 반영합니다.
+        video_post_id = AiVideoService.create_video_post(
+            session.get('user_id'),
+            title,
+            content,
+            f"ai_detect/{filename}"
+        )
+
+        # 4. 기존에 만든 영상 분석 함수 재활용!
+        process_video_ai(video_post_id, save_path, filename)
+
+        return redirect(url_for('view_video', post_id=video_post_id))
+
+    except Exception as e:
+        print(f"YouTube 다운로드 에러: {e}")
+        return "<script>alert('유튜브 영상을 가져오지 못했습니다.'); history.back();</script>"
+    # YouTube 다운로드 에러: ERROR: You have requested merging of multiple formats but ffmpeg is not installed. Aborting due to --abort-on-error
+    # 유튜브 다운로드 시 발생하는 이 에러는 yt-dlp가 고화질 영상(비디오)과 소리(오디오)를 하나로 합치기 위해 필요한 FFmpeg 프로그램이 서버 컴퓨터에 설치되어 있지 않아서 발생하는 문제입니다.
+
 
 @app.route('/')
 def index():

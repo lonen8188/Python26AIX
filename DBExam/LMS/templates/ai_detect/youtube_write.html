@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow-sm mx-auto" style="max-width: 600px;">
+        <div class="card-header bg-danger text-white">
+            <h4 class="mb-0"><i class="bi bi-youtube"></i> YouTube AI 분석 요청</h4>
+        </div>
+        <div class="card-body">
+            <form action="/ai-detect/youtube/process" method="post" id="ytForm">
+                <div class="mb-3">
+                    <label class="form-label">분석 제목</label>
+                    <input type="text" name="title" class="form-control" placeholder="예: 운동 영상 분석" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">YouTube URL</label>
+                    <input type="url" name="yt_url" class="form-control" 
+                           placeholder="https://www.youtube.com/watch?v=..." required>
+                    <div class="form-text text-muted">분석하고 싶은 유튜브 주소를 복사해서 넣어주세요.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">상세 설명</label>
+                    <textarea name="content" class="form-control" rows="2"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-danger w-100" id="subBtn">유튜브 다운로드 및 분석 시작</button>
+            </form>
+            
+            <div id="ytLoading" class="text-center mt-3" style="display:none;">
+                <div class="spinner-grow text-danger" role="status"></div>
+                <p class="mt-2 fw-bold text-danger">유튜브 영상을 서버로 가져오는 중입니다...<br>영상 길이에 따라 최대 몇 분이 소요될 수 있습니다.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('ytForm').onsubmit = function() {
+    document.getElementById('subBtn').disabled = true;
+    document.getElementById('ytLoading').style.display = 'block';
+};
+</script>
+{% endblock %}
