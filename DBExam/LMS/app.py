@@ -1,9 +1,11 @@
 # pip install flask
 import json
+import threading
 import uuid
 from uuid import uuid4
 
-from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory, make_response
+from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory, make_response, \
+    jsonify
 from LMS.common.session import Session
 from LMS.domain.Board import Board
 from LMS.domain.Score import Score
@@ -1124,23 +1126,27 @@ import os
 from LMS.service.AiVideoService import AiVideoService
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB까지 허용
 
+# 전역 변수: 진행률 관리
+analysis_status = {}
+
+
+@app.route('/ai-detect/progress')
+def get_progress():
+    uid = request.args.get('user_id')
+    # 해당 유저의 진행 상태를 반환
+    return jsonify(analysis_status.get(uid, {'percent': 0, 'message': '대기 중...'}))
+
+
+
 # 1. 영상 탐지 목록 (이미지와 분리해서 관리하거나 같이 관리 가능)
 @app.route('/ai-detect/video')
 def video_list():
-
-
     conn = Session.get_connection()
-    # DictCursor를 사용하면 post.title 처럼 이름으로 접근하기 편합니다.
     cursor = conn.cursor()
-
-    # 최신순으로 정렬해서 가져오기
-    sql = "SELECT * FROM ai_video_posts ORDER BY created_at DESC"
-    cursor.execute(sql)
+    cursor.execute("SELECT * FROM ai_video_posts ORDER BY created_at DESC")
     posts = cursor.fetchall()
-
     cursor.close()
     conn.close()
-
     return render_template('ai_detect/video_list.html', posts=posts)
 
 
@@ -1150,120 +1156,194 @@ def write_video_form():
     return render_template('ai_detect/video_write.html')
 
 
-def process_video_ai(video_post_id, origin_path, filename):  # 파라미터 확인
-    # 1. 원본 영상 로드 (정보 추출을 위해 먼저 실행)
+def process_video_ai(video_post_id, origin_path, filename, target_user_id=None):
     cap = cv2.VideoCapture(origin_path)
     fps = cap.get(cv2.CAP_PROP_FPS)
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    # 2. 결과 저장 경로 및 브라우저용 코덱 설정
-    # 파일명에서 확장자를 제거하고 .mp4로 강제 지정
     output_filename = f"res_{filename.split('.')[0]}.mp4"
     output_path = os.path.join(app.config['UPLOAD_FOLDER'], 'ai_detect', output_filename)
 
-    # 브라우저 호환성이 가장 좋은 'avc1' 코덱 사용
     fourcc = cv2.VideoWriter_fourcc(*'avc1')
-
-    # 변수(fps, width, height)가 정의된 후 out 객체 생성
     out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
 
-    frame_count = 0
+    # 유튜브는 50%부터, 일반 업로드는 10%부터 시작하도록 유동적 설정
+    start_p = 0
+    if target_user_id and target_user_id in analysis_status:
+        start_p = analysis_status[target_user_id].get('percent', 0)
 
-    # 3. 프레임별 루프 시작
+    frame_count = 0
     while cap.isOpened():
         ret, frame = cap.read()
-        if not ret:
-            break
+        if not ret: break
 
-        # YOLO 분석
         results = model.predict(frame, verbose=False)
-
-        # 탐지 데이터 추출 및 DB 저장 (5프레임마다)
         detected_objects = []
         for box in results[0].boxes:
             cls = int(box.cls[0])
             conf = float(box.conf[0])
             name = model.names[cls]
             coords = box.xyxy[0].tolist()
-
             detected_objects.append({
-                'name': name,
-                'conf': round(conf, 2),
+                'name': name, 'conf': round(conf, 2),
                 'bbox': [round(x, 1) for x in coords]
             })
 
         if frame_count % 5 == 0:
             AiVideoService.save_video_detail(video_post_id, frame_count, detected_objects)
 
-        # 결과 프레임 쓰기
-        annotated_frame = results[0].plot()
-        out.write(annotated_frame)
-
+        out.write(results[0].plot())
         frame_count += 1
 
-    # 자원 해제 (반드시 순서대로)
+        # 실시간 게이지 업데이트 (남은 % 구간 내에서 계산)
+        if target_user_id and total_frames > 0:
+            current_p = start_p + (frame_count / total_frames * (100 - start_p))
+            analysis_status[target_user_id] = {
+                'percent': round(current_p, 1),
+                'message': f'AI 프레임 분석 중... ({frame_count}/{total_frames})'
+            }
+
     cap.release()
     out.release()
 
-    # 4. 분석 완료 상태 업데이트 (실제 저장된 output_filename 사용)
+    # 분석 완료 업데이트
     AiVideoService.update_video_status(video_post_id, 'COMPLETED', f"ai_detect/{output_filename}", total_frames)
+    if target_user_id:
+        analysis_status[target_user_id] = {'percent': 100, 'message': '모든 분석이 완료되었습니다!'}
 
 
-
+# --- [일반 동영상 업로드 라우트] ---
 @app.route('/ai-detect/video/process', methods=['POST'])
 def process_video_ai_route():
     if 'video' not in request.files:
-        return "<script>alert('파일이 없습니다.'); history.back();</script>"
+        return jsonify({"status": "fail", "msg": "파일이 없습니다."})
 
     file = request.files['video']
+    title = request.form.get('title')
+    content = request.form.get('content')
+    user_id = request.form.get('user_id')  # 프론트엔드 fetch에서 보낸 ID
+
     if file and file.filename:
-        # 1. 파일명 및 경로 설정
         ext = os.path.splitext(file.filename)[1]
         filename = f"{uuid.uuid4()}{ext}"
         origin_path = os.path.join(app.config['UPLOAD_FOLDER'], 'ai_detect', filename)
         file.save(origin_path)
 
-        # 2. DB 초기 레코드 생성 (PENDING 상태)
         video_post_id = AiVideoService.create_video_post(
-            session.get('user_id'),
-            request.form['title'],
-            request.form['content'],
-            f"ai_detect/{filename}"
+            user_id, title, content, f"ai_detect/{filename}"
         )
 
         if video_post_id:
-            # 3. 실제 프레임 분석 실행 (아까 만든 함수 호출)
-            output_filename = f"res_{filename}"
-            # 주의: 영상이 길면 여기서 브라우저가 대기(Timeout)할 수 있습니다.
-            process_video_ai(video_post_id, origin_path, output_filename)
+            # 일반 업로드는 분석 비중이 크므로 10%부터 시작
+            analysis_status[user_id] = {'percent': 10, 'message': '업로드 완료! 분석을 시작합니다.'}
 
-            # 4. 완료 후 상세 페이지로 이동
-            return redirect(url_for('view_video', post_id=video_post_id))
+            # 스레드로 실행하여 즉시 응답 반환
+            thread = threading.Thread(target=process_video_ai, args=(video_post_id, origin_path, filename, user_id))
+            thread.start()
 
-    return "<script>alert('분석 실패'); history.back();</script>"
+            return jsonify({"status": "success", "post_id": video_post_id})
+
+    return jsonify({"status": "fail", "msg": "분석 요청 실패"})
+
 
 @app.route('/ai-video/view/<int:post_id>')
 def view_video(post_id):
     conn = Session.get_connection()
     cursor = conn.cursor()
-
-    # 1. 메인 포스트 정보
     cursor.execute("SELECT * FROM ai_video_posts WHERE id = %s", (post_id,))
     post = cursor.fetchone()
-
-    # 2. 프레임별 상세 내역
-    cursor.execute(
-        "SELECT frame_number, detected_objects FROM ai_video_details WHERE video_post_id = %s ORDER BY frame_number",
-        (post_id,))
+    cursor.execute("SELECT frame_number, detected_objects FROM ai_video_details WHERE video_post_id = %s ORDER BY frame_number", (post_id,))
     details = cursor.fetchall()
-
     cursor.close()
     conn.close()
-
     return render_template('ai_detect/view_video.html', post=post, details=details)
 #######################################  동영상 처리 AI END ####################################################
+######################################## 유튜브 동영상 객체 탐지 ################################################
+# app.py
+import yt_dlp # pip install yt-dlp
+
+# 진행률 게이지용 전역 변수
+analysis_status = {}
+
+
+
+def make_yt_hook(user_id):
+    def hook(d):
+        if d['status'] == 'downloading':
+            p_str = d.get('_percent_str', '0%').replace('%', '').strip()
+            try:
+                p_float = float(p_str)
+                # 다운로드 단계: 0 ~ 50% 구간
+                analysis_status[user_id] = {
+                    'percent': round(p_float * 0.5, 1),
+                    'message': f'유튜브 영상을 가져오는 중... ({p_str}%)'
+                }
+            except:
+                pass
+
+    return hook
+
+
+def start_analysis_thread(yt_url, video_post_id, save_path, filename, user_id):
+    try:
+        # 1. 유튜브 다운로드 (오디오 제외 옵션 유지)
+        ydl_opts = {
+            'format': 'bestvideo[ext=mp4]/best[ext=mp4]/best',
+            'outtmpl': save_path,
+            'noplaylist': True,
+            'progress_hooks': [make_yt_hook(user_id)],
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([yt_url])
+
+        # 2. AI 영상 분석 (50 ~ 100% 구간은 process_video_ai 내부에서 업데이트)
+        # 괄호 안에 user_id 인자를 추가하여 호출합니다.
+        process_video_ai(video_post_id, save_path, filename, user_id)
+
+    except Exception as e:
+        print(f"분석 스레드 에러: {e}")
+        analysis_status[user_id] = {'percent': 0, 'message': '분석 중 오류가 발생했습니다.'}
+
+@app.route('/ai-detect/youtube/write')
+def youtube_write_form():
+    return render_template('ai_detect/youtube_write.html')
+
+@app.route('/ai-detect/youtube/process', methods=['POST'])
+def process_youtube_route():
+    yt_url = request.form.get('yt_url')
+    title = request.form.get('title')
+    content = request.form.get('content')
+    user_id = request.form.get('user_id') # 프론트에서 보낸 ID
+
+    filename = f"yt_{uuid.uuid4()}.mp4"
+    save_path = os.path.join(app.config['UPLOAD_FOLDER'], 'ai_detect', filename)
+
+    # 1. DB에 PENDING 상태로 먼저 저장
+    video_post_id = AiVideoService.create_video_post(
+        user_id, title, content, f"ai_detect/{filename}"
+    )
+
+    if video_post_id:
+        # 2. 초기 상태 설정 (유튜브는 다운로드부터 시작하므로 1% 설정)
+        analysis_status[user_id] = {'percent': 1, 'message': '유튜브 연결 중...'}
+
+        # 3. 🔥 백그라운드 스레드 실행 (다운로드 + 분석 통합 함수)
+        # 이전에 만든 start_analysis_thread 함수를 호출합니다.
+        thread = threading.Thread(
+            target=start_analysis_thread,
+            args=(yt_url, video_post_id, save_path, filename, user_id)
+        )
+        thread.start()
+
+        # 4. ✨ 중요: 리다이렉트가 아닌 JSON 반환!
+        return jsonify({"status": "success", "post_id": video_post_id})
+
+    return jsonify({"status": "fail", "msg": "DB 등록 실패"})
+
+
+######################################################### 유튜브 처리 완료 ##################################################################
 
 @app.route('/')
 def index():
